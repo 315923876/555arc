@@ -4069,8 +4069,8 @@ public class UnitTypes{
             armor = 1f;
             hitSize = 9f;
             engineSize = 0;
-            payloadCapacity = 2f * 2f * tilesize * tilesize;
-            pickupUnits = false;
+            payloadCapacity = 99f * 99f * tilesize * tilesize;
+            pickupUnits = true;
             vulnerableWithPayloads = true;
 
             fogRadius = 0f;
@@ -4132,8 +4132,8 @@ public class UnitTypes{
             health = 500f;
             armor = 2f;
             hitSize = 11f;
-            payloadCapacity = 2f * 2f * tilesize * tilesize;
-            pickupUnits = false;
+            payloadCapacity = 999f * 999f * tilesize * tilesize;
+            pickupUnits = true;
             vulnerableWithPayloads = true;
 
             fogRadius = 0f;
@@ -4210,8 +4210,8 @@ public class UnitTypes{
             armor = 3f;
             hitSize = 12f;
             buildBeamOffset = 8f;
-            payloadCapacity = 2f * 2f * tilesize * tilesize;
-            pickupUnits = false;
+            payloadCapacity = 9999f * 9999f * tilesize * tilesize;
+            pickupUnits = true;
             vulnerableWithPayloads = true;
 
             fogRadius = 0f;

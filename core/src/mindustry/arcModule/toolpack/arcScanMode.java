@@ -33,8 +33,9 @@ import mindustry.world.blocks.storage.CoreBlock;
 import mindustry.world.blocks.storage.StorageBlock;
 import mindustry.world.blocks.storage.Unloader;
 import mindustry.world.meta.BlockGroup;
+import mindustry.gen.BlockUnitc;
 
-
+import arc.input.KeyCode;
 import static mindustry.Vars.*;
 import static mindustry.arcModule.RFuncs.*;
 import static mindustry.arcModule.RFuncs.calWaveTimer;
@@ -206,7 +207,7 @@ public class arcScanMode {
     }
 
     private static void findLogic(){
-        if (!Core.input.keyTap(Binding.select) || !control.input.arcScanMode) return;
+        if (!Core.input.keyTap(KeyCode.r) ) return;
         Tile hoverTile = world.tileWorld(Core.input.mouseWorld().x, Core.input.mouseWorld().y);
         if(hoverTile != null){
             //if the tile has a building, display it
@@ -445,6 +446,7 @@ public class arcScanMode {
         }
         return next;
     }
+
 
     public static boolean canInput(Point point, Building from, boolean active) {
         Building build = point.build;

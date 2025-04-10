@@ -5,13 +5,15 @@ import mindustry.entities.*;
 import mindustry.entities.units.*;
 import mindustry.gen.*;
 import mindustry.world.blocks.ConstructBlock.*;
+import arc.math.Angles;
+import arc.math.geom.Vec2;
 
 public class ArcRepairAI extends AIController{
-    public static float retreatDst = 160f, fleeRange = 310f, retreatDelay = Time.toSeconds * 3f;
-
+    public static float  fleeRange = 310f;
+    private final Vec2 vec = new Vec2();
     @Nullable
     Teamc avoid;
-    float retreatTimer;
+
     Building damagedTarget;
 
     @Override
@@ -42,19 +44,8 @@ public class ArcRepairAI extends AIController{
             if(timer.get(timerTarget4, 40)){
                 avoid = target(unit.x, unit.y, fleeRange, true, true);
             }
-
-            if((retreatTimer += Time.delta) >= retreatDelay){
-                //fly away from enemy when not doing anything
-                if(avoid != null){
-                    var core = unit.closestCore();
-                    if(core != null && !unit.within(core, retreatDst)){
-                        moveTo(core, retreatDst);
-                    }
-                }
-            }
-        }else{
-            retreatTimer = 0f;
         }
+        maintainSafeDistance();
     }
 
     @Override
@@ -70,4 +61,15 @@ public class ArcRepairAI extends AIController{
             this.target = damagedTarget;
         }
     }
+
+    private void maintainSafeDistance() {
+    if(target != null && unit.within(target, 0.3f)) {
+        // 计算从目标到单位的方向向量
+        float angle = Angles.angle(target.x(), target.y(), unit.x, unit.y);
+        // 沿此方向移动以远离目标
+        vec.trns(angle, unit.speed() * Time.delta);
+        unit.move(vec.x, vec.y);
+    }
+
+}
 }

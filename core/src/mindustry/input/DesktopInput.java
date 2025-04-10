@@ -28,6 +28,8 @@ import mindustry.type.UnitType;
 import mindustry.ui.*;
 import mindustry.world.*;
 import mindustry.world.blocks.ControlBlock;
+import static mindustry.arcModule.ARCVars.arcui;
+import arc.input.KeyCode;
 
 import static arc.Core.*;
 import static mindustry.Vars.net;
@@ -35,6 +37,8 @@ import static mindustry.Vars.*;
 import static mindustry.input.PlaceMode.*;
 
 public class DesktopInput extends InputHandler{
+    // 类的顶部声明这个静态变量
+    public static boolean isAutoFillActive = false;
     public Vec2 movement = new Vec2();
     /** Current cursor type. */
     public Cursor cursorType = SystemCursor.arrow;
@@ -832,59 +836,61 @@ public class DesktopInput extends InputHandler{
             }
         }
 
-        if (!manualShoot && Core.settings.getBool("autotarget") && !busy) {
-            if (target == null) {
-                float range = unit.hasWeapons() ? unit.range() : 0f;
-                player.shooting = false;
-                if(!(player.unit() instanceof BlockUnitUnit u && u.tile() instanceof ControlBlock c && !c.shouldAutoTarget())){
-                    target = Units.closestTarget(unit.team, unit.x, unit.y, range, u -> u.checkTarget(type.targetAir, type.targetGround), u -> type.targetGround);
-
-                    if(type.canHeal && target == null){
-                        target = Geometry.findClosest(unit.x, unit.y, indexer.getDamaged(Team.sharded));
-                        if(target != null && !unit.within(target, range)){
-                            target = null;
-                        }
-                    }
+if (!manualShoot && isAutoFillActive && !busy) {
+    if (target == null) {
+        float range = unit.hasWeapons() ? unit.range() : 0f;
+        player.shooting = false;
+        if(!(player.unit() instanceof BlockUnitUnit u && u.tile() instanceof ControlBlock c && !c.shouldAutoTarget())){
+            target = Units.closestTarget(unit.team, unit.x, unit.y, range, u -> u.checkTarget(type.targetAir, type.targetGround), u -> type.targetGround);
+            if(type.canHeal && target == null){
+                target = Geometry.findClosest(unit.x, unit.y, indexer.getDamaged(Team.sharded));
+                if(target != null && !unit.within(target, range)){
+                    target = null;
                 }
             }
-            else {
-                Vec2 intercept = Predict.intercept(unit, target, unit.hasWeapons() ? type.weapons.first().bullet.speed : 0f);
-
-                mouseX = intercept.x;
-                mouseY = intercept.y;
-                player.shooting = !boosted;
-
-                aimPos = intercept;
-                lookAtAngle = unit.angleTo(intercept);
-            }
         }
-        else {
-            target = null;
-        }
-        if (type.omniMovement && type.faceTarget && unit.isShooting) {
-            unit.lookAt(lookAtAngle);
-        }
-        else {
-            unit.lookAt(unit.prefRotation());
-        }
+    }
+    else {
+        Vec2 intercept = Predict.intercept(unit, target, unit.hasWeapons() ? type.weapons.first().bullet.speed : 0f);
+        mouseX = intercept.x;
+        mouseY = intercept.y;
+        player.shooting = !boosted;
+        aimPos = intercept;
+        lookAtAngle = unit.angleTo(intercept);
+    }
+}
+else {
+    target = null;
+}
+       if (Core.input.keyTap(KeyCode.g)) {
+    isAutoFillActive = !isAutoFillActive;
+    // 通知用户状态变化
+     if (!isAutoFillActive) {
+        player.shooting = false;
+    }
+    arcui.arcInfo("已" + (isAutoFillActive ? "开启" : "关闭") + "自动瞄准");
+}
 
-        unit.movePref(movement);
-        if (!autoAim) unit.aim(aimPos);
-        unit.controlWeapons(true, player.shooting && !boosted);
-
-        player.boosting = Core.input.keyDown(Binding.boost) || Core.settings.getBool("forceBoost");
-        player.mouseX = mouseX;
-        player.mouseY = mouseY;
-
-        //update payload input
-        if(unit instanceof Payloadc){
-            if(Core.input.keyTap(Binding.pickupCargo)){
-                tryPickupPayload();
-            }
-
-            if(Core.input.keyTap(Binding.dropCargo)){
-                tryDropPayload();
-            }
-        }
+if (type.omniMovement && type.faceTarget && unit.isShooting) {
+    unit.lookAt(lookAtAngle);
+}
+else {
+    unit.lookAt(unit.prefRotation());
+}
+unit.movePref(movement);
+if (!autoAim) unit.aim(aimPos);
+unit.controlWeapons(true, player.shooting && !boosted);
+player.boosting = Core.input.keyDown(Binding.boost) || Core.settings.getBool("forceBoost");
+player.mouseX = mouseX;
+player.mouseY = mouseY;
+//update payload input
+if(unit instanceof Payloadc){
+    if(Core.input.keyTap(Binding.pickupCargo)){
+        tryPickupPayload();
+    }
+    if(Core.input.keyTap(Binding.dropCargo)){
+        tryDropPayload();
+    }
+}
     }
 }

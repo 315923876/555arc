@@ -11,22 +11,24 @@ import mindustry.gen.*;
 import mindustry.input.DesktopInput;
 import mindustry.world.*;
 import mindustry.world.blocks.ConstructBlock.*;
+import mindustry.world.blocks.logic.LogicBlock;
+import mindustry.world.blocks.logic.CanvasBlock;
 
 import static mindustry.Vars.*;
 
 public class ArcBuilderAI extends AIController{
-    public static float buildRadius = 1500, retreatDst = 110f, retreatDelay = Time.toSeconds * 2f;
+    public static float buildRadius = 1500;
     public static float rebuildTime = 120f;
 
     public @Nullable Unit following;
-    public @Nullable Teamc enemy;
+
     public @Nullable BlockPlan lastPlan;
 
     public float fleeRange = 370f;
     public boolean alwaysFlee;
 
     boolean found = false;
-    float retreatTimer;
+
 
     public ArcBuilderAI(boolean alwaysFlee, float fleeRange){
         this.alwaysFlee = alwaysFlee;
@@ -46,7 +48,7 @@ public class ArcBuilderAI extends AIController{
         unit.updateBuilding = true;
 
         if(following != null){
-            retreatTimer = 0f;
+
             //try to follow and mimic someone
 
             //validate follower
@@ -57,30 +59,26 @@ public class ArcBuilderAI extends AIController{
             }
 
             //set to follower's first build plan, whatever that is
-            unit.plans.clear();
-            unit.plans.addFirst(following.buildPlan());
-            lastPlan = null;
-        }else if(unit.buildPlan() == null || alwaysFlee){
-            //not following anyone or building
-            if(timer.get(timerTarget4, 40)){
-                enemy = target(unit.x, unit.y, fleeRange, true, true);
-            }
-
-            //fly away from enemy when not doing anything, but only after a delay
-            if((retreatTimer += Time.delta) >= retreatDelay || alwaysFlee){
-                if(enemy != null){
-                    unit.clearBuilding();
-                    var core = unit.closestCore();
-                    if(core != null && !unit.within(core, retreatDst)){
-                        moveTo(core, retreatDst);
-                    }
+            BuildPlan plan = following.buildPlan();
+            
+            // 检查是否是逻辑方块，如果是则不帮助建造
+            if(plan != null && !plan.breaking) {
+                Block block = plan.block;
+                if(block instanceof LogicBlock) {
+                    following = null;
+                    unit.plans.clear();
+                    return;
                 }
             }
+            
+            unit.plans.clear();
+            unit.plans.addFirst(plan);
+            lastPlan = null;
         }
 
         if(unit.buildPlan() != null){
             if(unit.controller() == Vars.player && control.input instanceof DesktopInput di) di.isBuilding = true;
-            if(!alwaysFlee) retreatTimer = 0f;
+
             //approach plan if building
             BuildPlan req = unit.buildPlan();
 
@@ -97,7 +95,6 @@ public class ArcBuilderAI extends AIController{
             }
 
             boolean valid =
-            !(lastPlan != null && lastPlan.removed) &&
             ((req.tile() != null && req.tile().build instanceof ConstructBuild cons && cons.current == req.block) ||
             (req.breaking ?
             Build.validBreak(unit.team(), req.x, req.y) :
@@ -112,7 +109,6 @@ public class ArcBuilderAI extends AIController{
                 lastPlan = null;
             }
         }else{
-
             //follow someone and help them build
             if(timer.get(timerTarget2, 60f)){
                 found = false;
@@ -122,6 +118,20 @@ public class ArcBuilderAI extends AIController{
 
                     if(u.canBuild() && u != unit && u.activelyBuilding()){
                         BuildPlan plan = u.buildPlan();
+                        
+                        // 检查是否是玩家单位和是否是逻辑方块
+                        if(plan != null && !plan.breaking && plan.block instanceof LogicBlock){
+                            return; // 跳过逻辑方块
+                        }
+                         if(plan != null && !plan.breaking && plan.block instanceof CanvasBlock){
+                            return; // 跳过画板方块
+                        }
+                        
+                        
+                        // 只跟随玩家单位
+                        if(!(u.controller() instanceof Player)){
+                            return;
+                        }
 
                         Building build = world.build(plan.x, plan.y);
                         if(build instanceof ConstructBuild cons){
@@ -137,25 +147,8 @@ public class ArcBuilderAI extends AIController{
                 });
             }
 
-            //find new plan
-            if(!unit.team.data().plans.isEmpty() && following == null && timer.get(timerTarget3, rebuildTime)){
-                Queue<BlockPlan> blocks = unit.team.data().plans;
-                BlockPlan block = blocks.first();
-
-                //check if it's already been placed
-                if(world.tile(block.x, block.y) != null && world.tile(block.x, block.y).block().id == block.block){
-                    blocks.removeFirst();
-                }else if(Build.validPlace(content.block(block.block), unit.team(), block.x, block.y, block.rotation) && (!alwaysFlee || !nearEnemy(block.x, block.y))){ //it's valid
-                    lastPlan = block;
-                    //add build plan
-                    unit.addBuild(new BuildPlan(block.x, block.y, block.rotation, content.block(block.block), block.config));
-                    //shift build plan to tail so next unit builds something else
-                    blocks.addLast(blocks.removeFirst());
-                }else{
-                    //shift head of queue to tail, try something else next time
-                    blocks.addLast(blocks.removeFirst());
-                }
-            }
+            // 移除了自动重建被摧毁的建筑的代码
+            // 不再从 team.data().plans 获取建筑计划
         }
     }
 
