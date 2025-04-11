@@ -63,7 +63,7 @@ public class ArcRepairAI extends AIController{
     }
 
     private void maintainSafeDistance() {
-    if(target != null && unit.within(target, 0.3f)) {
+    if(target != null && unit.within(target, unit.type.range * 0.6f)) {
         // 计算从目标到单位的方向向量
         float angle = Angles.angle(target.x(), target.y(), unit.x, unit.y);
         // 沿此方向移动以远离目标
