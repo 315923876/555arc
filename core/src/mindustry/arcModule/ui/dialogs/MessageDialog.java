@@ -20,11 +20,11 @@ import mindustry.gen.Icon;
 import mindustry.gen.Player;
 import mindustry.gen.Tex;
 import mindustry.input.DesktopInput;
-
+import java.io.*;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
 import mindustry.world.blocks.storage.CoreBlock;
-
+import arc.util.Log;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -38,6 +38,7 @@ public class MessageDialog extends BaseDialog {
      * 选择的第一个|最后一个记录
      */
     private int msgInit, msgFinal;
+    
 
     private boolean ignoreMark = false;
     private int maxMsgRecorded = Math.max(Core.settings.getInt("maxMsgRecorded"), 20);
@@ -51,10 +52,13 @@ public class MessageDialog extends BaseDialog {
 
     public Seq<Boolf<String>> handlers = new Seq<>();
     public Seq<Boolf2<String, Player>> handlers2 = new Seq<>();
+        private static final int MAX_LOG_SIZE = 1024 * 1024; // 1MB
+    private static File currentLogFile;
+    private static int currentLogIndex = 0;
 
     public MessageDialog() {
         super("ARC-中央监控室");
-
+ initLogFile();
         //voiceControl.voiceControlDialog();
         cont.pane(t -> {
             historyTable = t;
@@ -159,6 +163,29 @@ public class MessageDialog extends BaseDialog {
 
                 t.marginBottom(7);
             }).growX().maxWidth(1000f).padBottom(15f).row();
+        }
+    }
+
+private void initLogFile() {
+        String baseDir = Core.settings.getDataDirectory().absolutePath();
+        currentLogFile = new File(baseDir, "log.txt");
+        
+        // 检查是否需要创建新的日志文件
+        if (currentLogFile.exists() && currentLogFile.length() >= MAX_LOG_SIZE) {
+            // 寻找可用的新文件名
+            while (true) {
+                currentLogIndex++;
+                String fileName = "log" + String.format("%02d", currentLogIndex) + ".txt";
+                currentLogFile = new File(baseDir, fileName);
+                if (!currentLogFile.exists() || currentLogFile.length() < MAX_LOG_SIZE) {
+                    break;
+                }
+            }
+        }
+        
+        // 确保文件目录存在
+        if (!currentLogFile.getParentFile().exists()) {
+            currentLogFile.getParentFile().mkdirs();
         }
     }
 
@@ -347,7 +374,52 @@ public class MessageDialog extends BaseDialog {
 
     public static void addMsg(advanceMsg msg) {
         msgList.add(msg);
+         writeToLogFile(msg);
     }
+
+    private static void writeToLogFile(advanceMsg msg) {
+        try {
+            String baseDir = Core.settings.getDataDirectory().absolutePath();
+            
+            // 检查当前日志文件是否需要更换
+            if (currentLogFile == null) {
+                currentLogFile = new File(baseDir, "log.txt");
+            }
+            
+            if (currentLogFile.exists() && currentLogFile.length() >= MAX_LOG_SIZE) {
+                // 寻找可用的新文件名
+                while (true) {
+                    currentLogIndex++;
+                    String fileName = "log" + String.format("%02d", currentLogIndex) + ".txt";
+                    currentLogFile = new File(baseDir, fileName);
+                    if (!currentLogFile.exists() || currentLogFile.length() < MAX_LOG_SIZE) {
+                        break;
+                    }
+                }
+            }
+            
+            // 确保父目录存在
+            if (!currentLogFile.getParentFile().exists()) {
+                currentLogFile.getParentFile().mkdirs();
+            }
+            
+            // 准备要写入的消息内容
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String timestamp = sdf.format(msg.time);
+            String logEntry = "[" + timestamp + "] [" + msg.msgType.name + "] " + 
+                              Strings.stripGlyphs(Strings.stripColors(msg.message)) + "\n";
+            
+            // 使用追加模式写入文件
+            try (FileWriter fw = new FileWriter(currentLogFile, true);
+                 BufferedWriter bw = new BufferedWriter(fw)) {
+                bw.write(logEntry);
+                bw.flush();
+            }
+        } catch (IOException e) {
+            Log.err("Failed to write to log file", e);
+        }
+    }
+
 
     private void clearMsg() {
         msgList.clear();
