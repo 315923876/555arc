@@ -862,7 +862,7 @@ if (!manualShoot && isAutoFillActive && !busy) {
 else {
     target = null;
 }
-       if (Core.input.keyTap(KeyCode.g)) {
+       if (Core.input.keyTap(KeyCode.g)&& !Core.scene.hasKeyboard()) {
     isAutoFillActive = !isAutoFillActive;
     // 通知用户状态变化
      if (!isAutoFillActive) {

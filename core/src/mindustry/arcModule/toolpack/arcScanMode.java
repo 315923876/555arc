@@ -109,6 +109,7 @@ public class arcScanMode {
         //detailTransporter();
         detailTransporter2();
         findLogic();
+        drawLogicHighlight();
         drawControlTurret();    //按理来说不应该放这，但不知道放哪了。
     }
 
@@ -206,21 +207,99 @@ public class arcScanMode {
         spawnerTable.clear();
     }
 
-    private static void findLogic(){
-        if (!Core.input.keyTap(KeyCode.r) ) return;
-        Tile hoverTile = world.tileWorld(Core.input.mouseWorld().x, Core.input.mouseWorld().y);
-        if(hoverTile != null){
-            //if the tile has a building, display it
-            if(hoverTile.build != null && hoverTile.build.displayable()  && !hoverTile.build.inFogTo(player.team())
-                && hoverTile.build.lastLogicController != null){
-                arcSetCamera(hoverTile.build.lastLogicController);
-            }
-        }
-        Unit u = control.input.selectedUnit();
-        if (u != null && u.controller() instanceof LogicAI ai && ai.controller != null && ai.controller.isValid()) {
-            arcSetCamera(ai.controller);
+private static void findLogic(){
+// 如果聊天框打开或者没有按R键，则不执行
+if (Core.scene.hasKeyboard() || !Core.input.keyTap(KeyCode.r)) return;
+    Tile hoverTile = world.tileWorld(Core.input.mouseWorld().x, Core.input.mouseWorld().y);
+    if(hoverTile != null){
+        //if the tile has a building, display it
+        if(hoverTile.build != null && hoverTile.build.displayable() && !hoverTile.build.inFogTo(player.team())
+            && hoverTile.build.lastLogicController != null){
+            arcSetCamera(hoverTile.build.lastLogicController);
+            // 在逻辑处理器周围绘制指示图案
+            drawLogicHighlight(hoverTile.build.lastLogicController);
         }
     }
+    Unit u = control.input.selectedUnit();
+    if (u != null && u.controller() instanceof LogicAI ai && ai.controller != null && ai.controller.isValid()) {
+        arcSetCamera(ai.controller);
+        // 在逻辑处理器周围绘制指示图案
+        drawLogicHighlight(ai.controller);
+    }
+}
+
+// 添加新方法来绘制逻辑处理器的高亮显示
+private static float logicHighlightTime = 0f;
+private static Building highlightedLogic = null;
+
+private static void drawLogicHighlight(Building logic) {
+    if (logic == null || !logic.isValid()) return;
+    
+    // 设置高亮显示的目标和时间
+    highlightedLogic = logic;
+    logicHighlightTime = 240f; // 4秒高亮显示
+}
+
+// 在arcScan方法中添加调用，类似于drawControlTurret()的用法
+
+// 新增绘制方法
+private static void drawLogicHighlight() {
+    // 如果没有高亮目标或时间已结束，则返回
+    if (highlightedLogic == null || logicHighlightTime <= 0 || !highlightedLogic.isValid()) {
+        logicHighlightTime = 0;
+        highlightedLogic = null;
+        return;
+    }
+    
+    // 减少计时
+    logicHighlightTime -= Time.delta;
+    
+    // 计算动画参数
+    float fin = 1f - logicHighlightTime / 240f;
+    float size = highlightedLogic.block.size * tilesize * 1.5f;
+    float alpha = 0.7f - fin * 0.6f;
+    
+    // 设置绘制层级
+    Draw.z(Layer.effect);
+    
+    // 绘制旋转的菱形
+    Draw.color(Color.cyan, Color.blue, fin);
+    Lines.stroke(2.5f * (1 - fin));
+    Draw.alpha(alpha);
+    float rot = fin * 180f;
+    
+    // 绘制十字架
+    Lines.line(
+        highlightedLogic.x - size * Mathf.cosDeg(rot), 
+        highlightedLogic.y - size * Mathf.sinDeg(rot),
+        highlightedLogic.x + size * Mathf.cosDeg(rot), 
+        highlightedLogic.y + size * Mathf.sinDeg(rot)
+    );
+    
+    Lines.line(
+        highlightedLogic.x - size * Mathf.cosDeg(rot + 90f), 
+        highlightedLogic.y - size * Mathf.sinDeg(rot + 90f),
+        highlightedLogic.x + size * Mathf.cosDeg(rot + 90f), 
+        highlightedLogic.y + size * Mathf.sinDeg(rot + 90f)
+    );
+    
+    // 绘制脉冲圆环
+    Lines.stroke(2f * (1 - fin));
+    Lines.circle(highlightedLogic.x, highlightedLogic.y, size * Mathf.pow(fin, 2) * 0.8f);
+    
+    // 绘制文字指示器需要使用Core.font代替Fonts.outline
+    if (fin < 0.7f) {
+        Draw.color(Color.white);
+        Draw.alpha((0.7f - fin) / 0.7f);
+        float textY = highlightedLogic.y + size * 0.7f;
+        
+        // 使用简单的标记代替文字
+        Fill.circle(highlightedLogic.x, textY, 3f);
+        Fill.rect(highlightedLogic.x, textY + 8f, 10f, 3f);
+    }
+    
+    Draw.reset();
+}
 
     private static void forward(Building cur, Building last) {
         forward(cur, last, 0);

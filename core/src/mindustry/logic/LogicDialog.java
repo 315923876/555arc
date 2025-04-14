@@ -1,4 +1,4 @@
-package mindustry.logic; 
+package mindustry.logic;
 
 import arc.Core;
 import arc.func.Cons;
@@ -26,11 +26,9 @@ import mindustry.logic.LStatements.InvalidStatement;
 import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
-import mindustry.world.blocks.logic.LogicBlock.*;
+
+
 import mindustry.world.blocks.logic.LogicBlock;
-import static mindustry.Vars.*;
-import static mindustry.arcModule.ARCVars.arcui;
-import static mindustry.logic.LCanvas.tooltip;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -38,7 +36,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.zip.InflaterInputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import mindustry.game.Schematic;
-import mindustry.game.Schematics;
+
+
+
+import static mindustry.Vars.*;
+import static mindustry.arcModule.ARCVars.arcui;
+import static mindustry.logic.LCanvas.tooltip;
 
 public class LogicDialog extends BaseDialog{
     public LCanvas canvas;
@@ -277,6 +280,15 @@ public class LogicDialog extends BaseDialog{
                         }
                     }).marginLeft(12f).disabled(b -> Core.app.getClipboardText() == null);
                     t.row();
+                     t.button("@schematic.copy.import", Icon.download, style, () -> {
+                        dialog.hide();
+                        try{
+                            canvas.load(Core.app.getClipboardText().replace("\r\n", "\n"));
+                        }catch(Throwable e){
+                            ui.showException(e);
+                        }
+                    }).marginLeft(12f).disabled(b -> Core.app.getClipboardText() == null);
+                    t.row();
                     t.button("[orange]从蓝图导入", Icon.paste, style, () -> {
     dialog.hide();
     showSchematics();
@@ -436,7 +448,7 @@ t.row();
         varsTable();
         show();
     }
-private void showSchematics() {
+    private void showSchematics() {
     BaseDialog dialog = new BaseDialog("[orange]从蓝图导入逻辑");
     
     // 主内容区域设置

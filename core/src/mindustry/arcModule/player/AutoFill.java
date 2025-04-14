@@ -24,7 +24,7 @@ public class AutoFill {
     private AutoFill() {
         Events.run(EventType.Trigger.update, () -> {
             // 检测E键是否被按下，如果是则切换自动填充状态
-            if (Core.input.keyTap(KeyCode.e)) {
+            if (Core.input.keyTap(KeyCode.y) && !Core.scene.hasKeyboard()) {
                 isAutoFillActive = !isAutoFillActive;
                 // 可以添加一个提示信息
 

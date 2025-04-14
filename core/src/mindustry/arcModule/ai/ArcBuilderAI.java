@@ -41,10 +41,6 @@ public class ArcBuilderAI extends AIController{
     @Override
     public void updateMovement(){
 
-        if(target != null && shouldShoot()){
-            unit.lookAt(target);
-        }
-
         unit.updateBuilding = true;
 
         if(following != null){
@@ -164,10 +160,5 @@ public class ArcBuilderAI extends AIController{
     @Override
     public boolean useFallback(){
         return state.rules.waves && unit.team == state.rules.waveTeam && !unit.team.rules().rtsAi;
-    }
-
-    @Override
-    public boolean shouldShoot(){
-        return !unit.isBuilding() && unit.type.canAttack;
     }
 }
